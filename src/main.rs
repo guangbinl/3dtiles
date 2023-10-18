@@ -259,41 +259,59 @@ fn convert_osgb(src: &str, dest: &str, config: &str) {
                             }
                         } else if v[0] == "EPSG" {
                             // call gdal to convert
-                            if let Ok(srs) = v[1].parse::<i32>() {
-                                let mut pt: Vec<f64> = metadata
-                                    .SRSOrigin
-                                    .split(",")
-                                    .map(|v| v.parse().unwrap())
-                                    .collect();
-                                if pt.len() >= 2 {
-                                    let gdal_data: String = {
-                                        use std::path::Path;
-                                        let exe_dir = ::std::env::current_exe().unwrap();
-                                        Path::new(&exe_dir)
-                                            .parent()
-                                            .unwrap()
-                                            .join("gdal_data")
-                                            .to_str()
-                                            .unwrap()
-                                            .into()
-                                    };
-                                    unsafe {
-                                        use std::ffi::CString;
-                                        let c_str = CString::new(gdal_data).unwrap();
-                                        let ptr = c_str.as_ptr();
-                                        if osgb::epsg_convert(srs, pt.as_mut_ptr(), ptr) {
-                                            center_x = pt[0];
-                                            center_y = pt[1];
-                                            info!("epsg: x->{}, y->{}", pt[0], pt[1]);
-                                        } else {
-                                            error!("epsg convert failed!");
+                            let mut pt: Vec<f64> = metadata
+                                .SRSOrigin
+                                .split(",")
+                                .map(|v| v.parse().unwrap())
+                                .collect();
+                            if pt.len() >= 2 {
+                                let gdal_data: String = {
+                                    use std::path::Path;
+                                    let exe_dir = ::std::env::current_exe().unwrap();
+                                    Path::new(&exe_dir)
+                                        .parent()
+                                        .unwrap()
+                                        .join("gdal_data")
+                                        .to_str()
+                                        .unwrap()
+                                        .into()
+                                };
+                                unsafe {
+                                    use std::ffi::CString;
+                                    let c_str = CString::new(gdal_data).unwrap();
+                                    let ptr = c_str.as_ptr();
+                                    let c_srs: Vec<&str> = v[1].split("+").collect();
+                                    if let Ok(h_srs) = c_srs[0].parse::<i32>() {
+                                        if c_srs.len()>1  {
+                                            if let Ok(v_srs) = c_srs[1].parse::<i32>(){
+                                                if osgb::epsg_custom_convert(h_srs, v_srs, pt.as_mut_ptr(), ptr) {
+                                                    center_x = pt[0];
+                                                    center_y = pt[1];
+                                                    info!("epsg: x->{}, y->{}", pt[0], pt[1]);
+                                                } else {
+                                                    error!("epsg convert failed!");
+                                                }
+                                            }
+                                            else{
+                                                error!("epsg convert failed!");
+                                            }
+                                        }
+                                        else{
+                                            if osgb::epsg_convert(h_srs, pt.as_mut_ptr(), ptr) {
+                                                center_x = pt[0];
+                                                center_y = pt[1];
+                                                info!("epsg: x->{}, y->{}", pt[0], pt[1]);
+                                            } else {
+                                                error!("epsg convert failed!");
+                                            }
                                         }
                                     }
-                                } else {
-                                    error!("epsg point is not enough");
+                                    else{
+                                        error!("epsg convert failed!");
+                                    }
                                 }
                             } else {
-                                error!("parse EPSG failed");
+                                error!("epsg point is not enough");
                             }
                         //
                         } else {

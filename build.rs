@@ -23,7 +23,7 @@ fn build_win_msvc() {
     // -------------
     println!("cargo:rustc-link-search=native=./lib");
     // -------------
-    println!("cargo:rustc-link-lib=gdal_i");
+    println!("cargo:rustc-link-lib=gdal");
     println!("cargo:rustc-link-lib=OpenThreads");
     println!("cargo:rustc-link-lib=osg");
     println!("cargo:rustc-link-lib=osgDB");
@@ -60,7 +60,7 @@ fn build_win_gun() {
     // -------------
     println!("cargo:rustc-link-search=native=./lib");
     // -------------
-    println!("cargo:rustc-link-lib=gdal_i");
+    println!("cargo:rustc-link-lib=gdal");
     println!("cargo:rustc-link-lib=osg");
     println!("cargo:rustc-link-lib=osgDB");
     println!("cargo:rustc-link-lib=osgUtil");

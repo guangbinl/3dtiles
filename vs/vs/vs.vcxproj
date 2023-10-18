@@ -208,7 +208,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>../../lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>gdal_i.lib;osg.lib;osgDB.lib;osgUtil.lib;osgViewer.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>gdal.lib;osg.lib;osgDB.lib;osgUtil.lib;osgViewer.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
       <Command>
@@ -249,7 +249,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>../../lib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>gdal_i.lib;osg.lib;osgDB.lib;osgUtil.lib;osgViewer.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>gdal.lib;osg.lib;osgDB.lib;osgUtil.lib;osgViewer.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PreBuildEvent>
       <Command>

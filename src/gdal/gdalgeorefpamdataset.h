@@ -1,13 +1,13 @@
 /******************************************************************************
- * $Id: gdalgeorefpamdataset.h 33794 2016-03-26 13:19:07Z goatbar $
+ * $Id$
  *
  * Project:  GDAL
  * Purpose:  GDALPamDataset with internal storage for georeferencing, with
  *           priority for PAM over internal georeferencing
- * Author:   Even Rouault <even dot rouault at mines-paris dot org>
+ * Author:   Even Rouault <even dot rouault at spatialys.com>
  *
  ******************************************************************************
- * Copyright (c) 2013, Even Rouault <even dot rouault at mines-paris dot org>
+ * Copyright (c) 2013, Even Rouault <even dot rouault at spatialys.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -31,27 +31,59 @@
 #ifndef GDAL_GEOREF_PAM_DATASET_H_INCLUDED
 #define GDAL_GEOREF_PAM_DATASET_H_INCLUDED
 
+#ifndef DOXYGEN_SKIP
+
 #include "gdal_pam.h"
 
 class CPL_DLL GDALGeorefPamDataset : public GDALPamDataset
 {
   protected:
-    bool        bGeoTransformValid;
-    double      adfGeoTransform[6];
-    char        *pszProjection;
-    int         nGCPCount;
-    GDAL_GCP    *pasGCPList;
+    bool bGeoTransformValid;
+    double adfGeoTransform[6];
+    OGRSpatialReference m_oSRS{};
+    int nGCPCount;
+    GDAL_GCP *pasGCPList;
+    char **m_papszRPC;
+    bool m_bPixelIsPoint;
+
+    int m_nGeoTransformGeorefSrcIndex;
+    int m_nGCPGeorefSrcIndex;
+    int m_nProjectionGeorefSrcIndex;
+    int m_nRPCGeorefSrcIndex;
+    int m_nPixelIsPointGeorefSrcIndex;
+
+    int GetPAMGeorefSrcIndex() const;
+    mutable bool m_bGotPAMGeorefSrcIndex;
+    mutable int m_nPAMGeorefSrcIndex;
+
+    bool m_bPAMLoaded;
+    char **m_papszMainMD;
+
+    CPL_DISALLOW_COPY_ASSIGN(GDALGeorefPamDataset)
 
   public:
-        GDALGeorefPamDataset();
-        virtual ~GDALGeorefPamDataset();
+    GDALGeorefPamDataset();
+    ~GDALGeorefPamDataset() override;
 
-    virtual CPLErr          GetGeoTransform( double * );
-    virtual const char     *GetProjectionRef();
+    CPLErr TryLoadXML(char **papszSiblingFiles = nullptr) override;
 
-    virtual int             GetGCPCount();
-    virtual const char     *GetGCPProjection();
-    virtual const GDAL_GCP *GetGCPs();
+    CPLErr GetGeoTransform(double *) override;
+
+    const OGRSpatialReference *GetSpatialRef() const override;
+
+    int GetGCPCount() override;
+    const OGRSpatialReference *GetGCPSpatialRef() const override;
+    const GDAL_GCP *GetGCPs() override;
+
+    char **GetMetadata(const char *pszDomain = "") override;
+    const char *GetMetadataItem(const char *pszName,
+                                const char *pszDomain = "") override;
+    CPLErr SetMetadata(char **papszMetadata,
+                       const char *pszDomain = "") override;
+    CPLErr SetMetadataItem(const char *pszName, const char *pszValue,
+                           const char *pszDomain = "") override;
 };
+
+#endif /* #ifndef DOXYGEN_SKIP */
 
 #endif /* GDAL_GEOREF_PAM_DATASET_H_INCLUDED */

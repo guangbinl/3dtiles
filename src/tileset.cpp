@@ -21,10 +21,12 @@ extern "C" bool epsg_convert(int insrs, double* val, char* path) {
     OGRSpatialReference inRs,outRs;
     inRs.importFromEPSG(insrs);
     outRs.importFromEPSG(4326);
+    inRs.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
+    outRs.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
     OGRCoordinateTransformation *poCT = OGRCreateCoordinateTransformation( &inRs, &outRs );
     GeoTransform::Init(poCT, val);
     if (poCT) {
-        if (poCT->Transform( 1, val, val + 1)) {
+        if (poCT->Transform( 1, val, val + 1, val + 2)) {
             // poCT will be used later so don't delete it
             // delete poCT;
             return true;
@@ -34,15 +36,43 @@ extern "C" bool epsg_convert(int insrs, double* val, char* path) {
     return false;
 } 
 
+extern "C" bool epsg_custom_convert(int h_insrs, int v_insrs, double* val, char* path) {
+    CPLSetConfigOption("GDAL_DATA", path);
+    OGRSpatialReference inRs, outRs;
+    OGRSpatialReference hInRs, vInRs;
+    hInRs.importFromEPSG(h_insrs);
+    vInRs.importFromEPSG(v_insrs);
+    char szBuf[256];
+    memset(szBuf,sizeof(szBuf),0);
+    sprintf(szBuf, "EPSG:%d+%d", h_insrs, v_insrs);
+    inRs.SetCompoundCS(szBuf,&hInRs,&vInRs);
+    outRs.importFromEPSG(4326);
+    inRs.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
+    outRs.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
+    OGRCoordinateTransformation* poCT = OGRCreateCoordinateTransformation(&inRs, &outRs);
+    GeoTransform::Init(poCT, val);
+    if (poCT) {
+        if (poCT->Transform(1, val, val + 1, val+2)) {
+            // poCT will be used later so don't delete it
+            // delete poCT;
+            return true;
+        }
+        // delete poCT;
+    }
+    return false;
+}
+
 extern "C" bool wkt_convert(char* wkt, double* val, char* path) {
     CPLSetConfigOption("GDAL_DATA", path);
     OGRSpatialReference inRs,outRs;
     inRs.importFromWkt(&wkt);
     outRs.importFromEPSG(4326);
+    inRs.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
+    outRs.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
     OGRCoordinateTransformation *poCT = OGRCreateCoordinateTransformation( &inRs, &outRs );
     GeoTransform::Init(poCT, val);
     if (poCT) {
-        if (poCT->Transform( 1, val, val + 1)) {
+        if (poCT->Transform( 1, val, val + 1,val+2)) {
             // delete poCT;
             return true;
         }

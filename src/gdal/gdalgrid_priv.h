@@ -1,12 +1,12 @@
 /******************************************************************************
- * $Id: gdalgrid_priv.h 33715 2016-03-13 08:52:06Z goatbar $
+ * $Id$
  *
  * Project:  GDAL Gridding API.
  * Purpose:  Prototypes, and definitions for of GDAL scattered data gridder.
- * Author:   Even Rouault, <even dot rouault at mines dash paris dot org>
+ * Author:   Even Rouault, <even dot rouault at spatialys.com>
  *
  ******************************************************************************
- * Copyright (c) 2013, Even Rouault <even dot rouault at mines-paris dot org>
+ * Copyright (c) 2013, Even Rouault <even dot rouault at spatialys.com>
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -27,80 +27,55 @@
  * DEALINGS IN THE SOFTWARE.
  ****************************************************************************/
 
+#ifndef GDALGRID_PRIV_H
+#define GDALGRID_PRIV_H
+
 #include "cpl_error.h"
 #include "cpl_quad_tree.h"
 
+//! @cond Doxygen_Suppress
+
 typedef struct
 {
-    const double* padfX;
-    const double* padfY;
+    const double *padfX;
+    const double *padfY;
 } GDALGridXYArrays;
 
 typedef struct
 {
-    GDALGridXYArrays* psXYArrays;
-    int               i;
+    GDALGridXYArrays *psXYArrays;
+    int i;
 } GDALGridPoint;
 
 typedef struct
 {
-    CPLQuadTree* hQuadTree;
-    double       dfInitialSearchRadius;
-    const float *pafX;
-    const float *pafY;
-    const float *pafZ;
-    GDALTriangulation* psTriangulation;
-    int                nInitialFacetIdx;
+    CPLQuadTree *hQuadTree;
+    double dfInitialSearchRadius;
+    float *pafX;  // Aligned to be usable with AVX
+    float *pafY;
+    float *pafZ;
+    GDALTriangulation *psTriangulation;
+    int nInitialFacetIdx;
     /*! Weighting power divided by 2 (pre-computation). */
-    double  dfPowerDiv2PreComp;
+    double dfPowerDiv2PreComp;
     /*! The radius of search circle squared (pre-computation). */
-    double  dfRadiusPower2PreComp;
-    /*! The radius of search circle to power 4 (pre-computation). */
-    double  dfRadiusPower4PreComp;
+    double dfRadiusPower2PreComp;
 } GDALGridExtraParameters;
 
 #ifdef HAVE_SSE_AT_COMPILE_TIME
-int CPLHaveRuntimeSSE();
-
-CPLErr
-GDALGridInverseDistanceToAPower2NoSmoothingNoSearchSSE(
-                                        const void *poOptions,
-                                        GUInt32 nPoints,
-                                        const double *unused_padfX,
-                                        const double *unused_padfY,
-                                        const double *unused_padfZ,
-                                        double dfXPoint, double dfYPoint,
-                                        double *pdfValue,
-                                        void* hExtraParamsIn );
+CPLErr GDALGridInverseDistanceToAPower2NoSmoothingNoSearchSSE(
+    const void *poOptions, GUInt32 nPoints, const double *unused_padfX,
+    const double *unused_padfY, const double *unused_padfZ, double dfXPoint,
+    double dfYPoint, double *pdfValue, void *hExtraParamsIn);
 #endif
 
 #ifdef HAVE_AVX_AT_COMPILE_TIME
-int CPLHaveRuntimeAVX();
-
 CPLErr GDALGridInverseDistanceToAPower2NoSmoothingNoSearchAVX(
-                                        const void *poOptions,
-                                        GUInt32 nPoints,
-                                        const double *unused_padfX,
-                                        const double *unused_padfY,
-                                        const double *unused_padfZ,
-                                        double dfXPoint, double dfYPoint,
-                                        double *pdfValue,
-                                        void* hExtraParamsIn );
+    const void *poOptions, GUInt32 nPoints, const double *unused_padfX,
+    const double *unused_padfY, const double *unused_padfZ, double dfXPoint,
+    double dfYPoint, double *pdfValue, void *hExtraParamsIn);
 #endif
-#if defined(__GNUC__)
-#if defined(__x86_64)
-#define GCC_CPUID(level, a, b, c, d)            \
-  __asm__ ("xchgq %%rbx, %q1\n"                 \
-           "cpuid\n"                            \
-           "xchgq %%rbx, %q1"                   \
-       : "=a" (a), "=r" (b), "=c" (c), "=d" (d) \
-       : "0" (level))
-#else
-#define GCC_CPUID(level, a, b, c, d)            \
-  __asm__ ("xchgl %%ebx, %1\n"                  \
-           "cpuid\n"                            \
-           "xchgl %%ebx, %1"                    \
-       : "=a" (a), "=r" (b), "=c" (c), "=d" (d) \
-       : "0" (level))
-#endif
-#endif
+
+//! @endcond
+
+#endif  // GDALGRID_PRIV_H

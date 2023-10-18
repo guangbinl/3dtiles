@@ -29,6 +29,8 @@ extern "C" {
 
     pub fn epsg_convert(insrs: i32, val: *mut f64, gdal: *const i8) -> bool;
 
+    pub fn epsg_custom_convert(h_insrs: i32, v_insrs: i32, val: *mut f64, gdal: *const i8) -> bool;
+
     pub fn wkt_convert(gdal: *const u8, val: *mut f64, gdal: *const i8) -> bool;
 
     fn degree2rad(val: f64) -> f64;
