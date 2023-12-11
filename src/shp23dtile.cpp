@@ -416,39 +416,68 @@ shp23dtile(const char* filename, int layer_id,
         return false;
     }
 
-    OGREnvelope envelop;
-    OGRErr err = poLayer->GetExtent(&envelop);
-    if (err != OGRERR_NONE) {
-        LOG_E("no extent found in shapefile");
-        return false;
-    }
-    if (envelop.MaxX > 180 || envelop.MinX < -180 || envelop.MaxY > 90 || envelop.MinY < -90) {
-        LOG_E("only support WGS-84 now");
+    OGRSpatialReference* poSRS = poLayer->GetSpatialRef();
+    OGRSpatialReference oTargetSRS;
+    oTargetSRS.SetWellKnownGeogCS("WGS84");
+
+    // 设置空间参考的坐标轴顺序
+    poSRS->SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
+    oTargetSRS.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER);
+
+    // 创建坐标转换器
+    OGRCoordinateTransformation* poCT = OGRCreateCoordinateTransformation(poSRS, &oTargetSRS);
+    if (poCT == NULL) {
+        // 处理坐标转换创建失败的情况
+        GDALClose(poDS);
+        LOG_E("create  coordinate transform  [%s]:[%d] failed", filename, layer_id);
         return false;
     }
 
-    bbox bound(envelop.MinX, envelop.MaxX, envelop.MinY, envelop.MaxY);
-    node root(bound);
-    OGRFeature *poFeature;
+    // 遍历要素并进行坐标转换
     poLayer->ResetReading();
-    while ((poFeature = poLayer->GetNextFeature()) != NULL)
-    {
-        OGRGeometry *poGeometry;
-        poGeometry = poFeature->GetGeometryRef();
-        if (poGeometry == NULL) {
+    OGRFeature* poFeature;
+    // 定义新的图层范围
+    OGREnvelope envelop;
+    std::map<unsigned long long, bbox> itemMap;
+    while ((poFeature = poLayer->GetNextFeature()) != NULL) {
+        // 获取原始几何体
+        OGRGeometry* poGeometry = poFeature->GetGeometryRef();
+
+        // 进行坐标转换
+        if (poGeometry->transform(poCT) != OGRERR_NONE) {
+            // 处理坐标转换失败的情况
             OGRFeature::DestroyFeature(poFeature);
-            continue;
+            OGRCoordinateTransformation::DestroyCT(poCT);
+            GDALClose(poSRS);
+            return false;
         }
-        OGREnvelope envelop;
-        poGeometry->getEnvelope(&envelop);
-        bbox bound(envelop.MinX, envelop.MaxX, envelop.MinY, envelop.MaxY);
+
+        // 保存更新后的几何体
+        poFeature->SetGeometryDirectly(poGeometry);
+
+        OGREnvelope geometryExtent;
+        poGeometry->getEnvelope(&geometryExtent);
+
+        // 更新新的图层范围
+        envelop.Merge(geometryExtent);
+
+        bbox bound(geometryExtent.MinX, geometryExtent.MaxX, geometryExtent.MinY, geometryExtent.MaxY);
         unsigned long long id = poFeature->GetFID();
-        root.add(id, bound);
+        itemMap.insert(std::make_pair(id, bound));
+
+        // 释放要素
         OGRFeature::DestroyFeature(poFeature);
+    }
+
+    bbox bound(envelop.MinX, envelop.MaxX, envelop.MinY, envelop.MaxY);
+    node* root= new node(bound);
+    for (auto itr : itemMap) {
+        root->add(itr.first, itr.second);
     }
     // iter all node and convert to obj 
     std::vector<void*> items_array;
-    root.get_all(items_array);
+    root->get_all(items_array);
+  
     //
     int field_index = -1;
     
@@ -469,6 +498,14 @@ shp23dtile(const char* filename, int layer_id,
             for (auto id : _node->get_ids()) {
                 OGRFeature *poFeature = poLayer->GetFeature(id);
                 OGRGeometry* poGeometry = poFeature->GetGeometryRef();
+                // 进行坐标转换
+                if (!poGeometry || poGeometry->transform(poCT) != OGRERR_NONE) {
+                    // 处理坐标转换失败的情况
+                    OGRFeature::DestroyFeature(poFeature);
+                    OGRCoordinateTransformation::DestroyCT(poCT);
+                    GDALClose(poSRS);
+                    return false;
+                }
                 OGREnvelope geo_box;
                 poGeometry->getEnvelope(&geo_box);
                 if ( !node_box.IsInit() ) {
@@ -482,6 +519,8 @@ shp23dtile(const char* filename, int layer_id,
             _node->_box.maxx = node_box.MaxX;
             _node->_box.miny = node_box.MinY;
             _node->_box.maxy = node_box.MaxY;
+            // 释放要素
+            OGRFeature::DestroyFeature(poFeature);
         }
         double center_x = ( _node->_box.minx + _node->_box.maxx ) / 2;
         double center_y = ( _node->_box.miny + _node->_box.maxy ) / 2;
@@ -491,6 +530,14 @@ shp23dtile(const char* filename, int layer_id,
             OGRFeature *poFeature = poLayer->GetFeature(id);
             OGRGeometry *poGeometry;
             poGeometry = poFeature->GetGeometryRef();
+            // 进行坐标转换
+            if (!poGeometry || poGeometry->transform(poCT) != OGRERR_NONE) {
+                // 处理坐标转换失败的情况
+                OGRFeature::DestroyFeature(poFeature);
+                OGRCoordinateTransformation::DestroyCT(poCT);
+                GDALClose(poSRS);
+                return false;
+            }
             double height = 50.0;
             if( field_index >= 0 ) {
                 height = poFeature->GetFieldAsDouble(field_index);
@@ -542,8 +589,12 @@ shp23dtile(const char* filename, int layer_id,
             0 , max_height, 100,
             b3dm_name,tile_json_path);
     }
+
+    // 释放坐标转换器
+    OGRCoordinateTransformation::DestroyCT(poCT);
     //
     GDALClose(poDS);
+    delete root;
     return true;
 #else
     return false;
