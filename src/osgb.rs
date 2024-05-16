@@ -141,7 +141,7 @@ pub fn osgb_batch_convert(
                 );
                 libc::free(out_ptr);
             }
-            let t = TileResult {
+            let t: TileResult = TileResult {
                 path: info.out_dir.into(),
                 json: String::from_utf8(json_buf).unwrap(),
                 box_v: root_box,
@@ -151,7 +151,7 @@ pub fn osgb_batch_convert(
         .count();
 
     // merge and root
-    let mut tile_array = vec![];
+    let mut tile_array: Vec<TileResult> = vec![];
     for _ in 0..task_count {
         if let Ok(t) = receiver.recv() {
             if !t.json.is_empty() {

@@ -1,8 +1,14 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>-f osgb -i C:\Data\OsgbFiles -o C:\Data\Test</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments> -f osgb   -i  "C:\Users\lgb\Desktop\AbuDhabi_Cut_10" -o "C:\Users\lgb\Desktop\3dtiles"</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerCommand>..\..\target\debug\_3dtile.exe</LocalDebuggerCommand>
+    <LocalDebuggerWorkingDirectory>$(ProjectDir)</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerEnvironment>set path=$(path);C:\project\3dtiles\target\debug;C:\project\3dtiles\target\debug\osgPlugins-3.6.5</LocalDebuggerEnvironment>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LocalDebuggerEnvironment>set path=$(path);$(SolutionDir)..\bin</LocalDebuggerEnvironment>
+    <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
 </Project>

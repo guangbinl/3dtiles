@@ -93,7 +93,9 @@ public:
         {
             osg::Vec3Array *vertexArr = (osg::Vec3Array *)geometry.getVertexArray();
             OGRCoordinateTransformation *poCT = GeoTransform::pOgrCT;
-
+            if (!vertexArr) {
+                return;
+            }
             /** 1. We obtain the bound of this tile */
             glm::dvec3 Min = glm::dvec3(DBL_MAX);
             glm::dvec3 Max = glm::dvec3(-DBL_MAX);

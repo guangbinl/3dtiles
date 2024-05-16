@@ -102,7 +102,7 @@ pub fn shape_batch_convert(from: &str, to: &str, height: &str) -> bool {
 
         let dir_dest = Path::new(to);
         let path_json = dir_dest.join("tileset.json");
-        let mut f = File::create(path_json).unwrap();
+        let mut f: File = File::create(path_json).unwrap();
         f.write_all(
             &serde_json::to_string_pretty(&tileset_json)
                 .unwrap()
